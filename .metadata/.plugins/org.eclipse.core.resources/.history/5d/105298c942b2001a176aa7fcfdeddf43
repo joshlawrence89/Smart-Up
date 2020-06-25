@@ -1,0 +1,177 @@
+package com.capt.inv.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+
+
+@Entity
+@Table(name="users")
+public class Users {
+	
+	
+	public Users() {}
+	
+	
+	
+	@Id
+	@GeneratedValue(strategy=GenerationType.AUTO)
+	private Long id;
+	
+	@Column(name="username")
+	private String userName;
+	
+	private String fname;
+	private String lname;
+	private String password;
+	private String role;
+	private String image;
+	private float creditLimit;
+	private boolean enabled;
+	
+	
+	@OneToOne(mappedBy="user",cascade=CascadeType.ALL)
+	ContactInfo contactInfo;
+	
+	@OneToMany(mappedBy = "user", fetch=FetchType.EAGER, cascade= CascadeType.ALL)
+	private List<Pledge> pledges = new ArrayList<Pledge>();
+	
+	@OneToMany(mappedBy = "user", fetch=FetchType.LAZY, cascade= CascadeType.ALL)
+	private List<Project> projects = new ArrayList<Project>();
+
+	@OneToMany(mappedBy="user", cascade=CascadeType.ALL)
+	private List<PaymentMethod> paymentMethod;
+	
+	
+
+	public Users(String userName, String password, String Role, String fname, String lname) {
+		super();
+		this.userName = userName;
+		this.fname = fname;
+		this.lname = lname;
+		this.password = password;
+		this.role = Role;
+	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public String getFname() {
+		return fname;
+	}
+
+	public void setFname(String fname) {
+		this.fname = fname;
+	}
+
+	public String getLname() {
+		return lname;
+	}
+
+	public void setLname(String lname) {
+		this.lname = lname;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getRole() {
+		return role;
+	}
+
+	public void setRole(String role) {
+		this.role = role;
+	}
+	
+	public String getImage() {
+		return image;
+	}
+
+	public void setImage(String image) {
+		this.image = image;
+	}
+	
+	public float getCreditLimit() {
+		return creditLimit;
+	}
+
+	public void setCreditLimit(float creditLimit) {
+		this.creditLimit = creditLimit;
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public void setPledges(List<Pledge> pledges) {
+		this.pledges = pledges;
+	}
+
+	public void setProjects(List<Project> projects) {
+		this.projects = projects;
+	}
+
+	public List<PaymentMethod> getPaymentMethod() {
+		return paymentMethod;
+	}
+	public void setPaymentMethod(List<PaymentMethod> paymentMethod) {
+		this.paymentMethod = paymentMethod;
+	}
+
+	public ContactInfo getContactInfo() {
+		return contactInfo;
+	}
+	public void setContactInfo(ContactInfo contactInfo) {
+		this.contactInfo = contactInfo;
+	}
+
+	public List<Pledge> getPledges() {
+		return pledges;
+	}
+
+	public void addPledge(Pledge pledge) {
+		pledges.add(pledge);
+	}
+
+	public List<Project> getProjects() {
+		return projects;
+	}
+
+	public void addProject(Project project) {
+		projects.add(project);
+	}
+}

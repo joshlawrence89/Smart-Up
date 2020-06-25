@@ -1,0 +1,117 @@
+package com.capt.inv.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+
+import org.apache.catalina.User;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import javax.persistence.Id;
+
+@Entity
+@Table(name="pledges")
+public class Pledge {
+
+	@Id
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	private int id;
+	
+	private float amount;
+	
+	private boolean permanent;
+	
+	@ManyToMany(mappedBy="pledges", cascade = {CascadeType.PERSIST})
+	private List<User> users;
+	
+	@ManyToMany(mappedBy="pledges", cascade = {CascadeType.PERSIST})
+	private List<Project> projects; 
+	
+	public Pledge() {
+		users = new ArrayList<>();
+		projects = new ArrayList<>();
+	}
+	
+	public int getPledgeId() {
+		return id;
+	}
+
+	public void setPledgeId(int pledgeId) {
+		this.id = pledgeId;
+	}
+	
+	public float getAmount() {
+		return amount;
+	}
+
+	public void setAmount(float amount) {
+		this.amount = amount;
+	}
+
+	public boolean isPermanet() {
+		return permanent;
+	}
+
+	public void setPermanent(boolean permanent) {
+		this.permanent = permanent;
+	}
+	
+	public User getUser() {
+		return users.get(0);
+	}
+
+	public void setUser(User user) {
+		users.add(user);
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public List<User> getUsers() {
+		return users;
+	}
+
+	public void setUsers(List<User> users) {
+		this.users = users;
+	}
+
+	public List<Project> getProjects() {
+		return projects;
+	}
+
+	public void setProjects(List<Project> projects) {
+		this.projects = projects;
+	}
+
+	public boolean isPermanent() {
+		return permanent;
+	}
+
+	public Project getProject() {
+		return projects.get(0);
+	}
+
+	public void setProject(Project project) {
+		projects.add(project);
+	}
+
+	public String toString() {
+		String out = "pledge [id=" + id + ", amount=" + amount + ", permanent=" + permanent 
+				+ "]";
+		return out;
+	}
+}

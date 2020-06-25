@@ -1,0 +1,444 @@
+package com.capt.inv.controller;
+
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.SessionAttribute;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.bind.support.SessionStatus;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.capt.inv.model.*;
+import com.capt.inv.repository.*;
+import com.capt.inv.service.*;
+import com.capt.inv.utils.*;
+
+@Controller
+@SessionAttributes({"loggedInuser", "role"})
+public class AppController {
+
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private ProjectRepository projectRepository;
+
+	@Autowired
+	private PledgeService pledgeService;
+
+	@Autowired
+	private ContactInfoRepository contactInfoRepository;
+
+	@Autowired
+	private ProjectService projectService;
+
+	@Autowired
+	private DataValidation dataValidation;
+
+	@Autowired
+	private WebUtils webUtils;
+
+	@Autowired
+	private PaymentMethodRepository paymentMethodRepository;
+
+	@GetMapping({ "/", "home" })
+	String home(Model model) {
+
+		model.addAttribute("msg", "this is msg tag from controller");
+
+		return "index";
+
+	}
+
+	@GetMapping("contactus")
+	String cont(Model model) {
+		model.addAttribute("msg", "Contact us page");
+
+		return "contact";
+
+	}
+
+	@GetMapping("about")
+	String about(Model model) {
+		model.addAttribute("msg", "About us page");
+
+		return "about";
+
+	}
+
+	@GetMapping("about-us")
+	String red(RedirectAttributes redirect) {
+		redirect.addFlashAttribute("success", "This is redirect message");
+
+		return "redirect:/about";
+
+	}
+
+	@PostMapping("signup")
+	String signup(RedirectAttributes model, @RequestParam String fname, @RequestParam String lname) {
+		model.addFlashAttribute("success", "Thank you " + fname + " " + lname);
+
+		return "redirect:/index";
+	}
+
+	@PostMapping("register")
+	String register(Model model, @ModelAttribute Users user, BindingResult result) {
+
+		dataValidation.validate(user, result);
+		if (result.hasErrors()) {
+
+			return "register";
+		}
+
+		user.setRole("USER");
+		userService.save(user);
+		model.addAttribute("msg", "Registration Success Thank You " + user.getFname());
+
+		return "login";
+	}
+
+	@PostMapping("updateUser")
+	String updateUser(RedirectAttributes redirect, @RequestParam String fname, @RequestParam String lname,
+			@RequestParam String email) {
+
+		userService.updateUser(fname, lname, email);
+		redirect.addFlashAttribute("success", fname + " updated ");
+
+		return "redirect:admin";
+
+	}
+
+	@GetMapping("register")
+	String reg(Model model) {
+
+		model.addAttribute("users", new Users());
+
+		return "register";
+
+	}
+
+	@GetMapping("login")
+	String login(Model model) {
+		model.addAttribute("msg", "Please Login");
+
+		return "login";
+	}
+
+	@PostMapping("login")
+	String login(@RequestParam String email, @RequestParam String password, RedirectAttributes redirect, Model model) {
+
+		Optional<Users> findUser = userService.login(email, password);
+		if (findUser.isPresent()) {
+
+			model.addAttribute("loggedInuser", email);
+			model.addAttribute("role", findUser.get().getRole());
+			redirect.addFlashAttribute("msg", "Welcome");
+
+		} else {
+			redirect.addFlashAttribute("error", "Invalid Credentials");
+			return "redirect:login";
+		}
+
+		return "redirect:profile";
+
+	}
+
+	@GetMapping("profile")
+	String profile(@SessionAttribute("loggedInuser") String email, Model model) {
+
+		Optional<Users> user = userService.findByEmail(email);
+
+		model.addAttribute("user_account", user.get());
+
+		if (user.get().getContactInfo() != null) {
+			model.addAttribute("contact_info", user.get().getContactInfo());
+		}
+
+		return "profile";
+
+	}
+
+	@GetMapping("activecampaigns")
+	public String viewProjects(Model model) {
+		
+		model.addAttribute("projects", projectService.listAllProjects());
+
+		return "activecampaigns";
+	}
+
+	@GetMapping("newcampaign")
+	public String addNewProjectForm(Model model) {
+		Project project = new Project();
+		model.addAttribute("projects", project);
+
+		return "newcampaign";
+	}
+
+	@PostMapping("newcampagin")
+	public String addNewProjectSave(Project project, BindingResult binding, RedirectAttributes redirectAttributes) {
+		
+
+		if (binding.hasErrors())
+
+			return "newcampaign";
+
+		if (projectService.addProject(project))
+
+			return "redirect:activecampaigns";
+
+		redirectAttributes.addFlashAttribute("duplicate", true);
+
+		return "redirect:newcampaign";
+	}
+	
+	@GetMapping("viewcampaign")
+	public String viewcampaign(Model model) {
+		
+		return "viewcampaign";
+	}
+
+	@GetMapping("editcampaign")
+	public String editProjectForm(Project project, int id, Model model) {
+		model.addAttribute("projects", project);
+		model.addAttribute("id", id);
+
+		return "editcampaign";
+	}
+
+	@PostMapping("editcampaign")
+	public String editProjectSave(Project project, int id, BindingResult binding, RedirectAttributes redirectAttributes) {
+		
+		if (binding.hasErrors())
+
+			return "editcampaign" + id;
+
+		if (projectService.editDescription(id, project.getDescription()))
+
+			return "redirect:activecampaigns" + id;
+
+		redirectAttributes.addFlashAttribute("duplicate", true);
+
+		return "redirect:" + id;
+	}
+
+	@GetMapping("newpledge")
+	public String addNewPledgeForm(Model model) {
+		Pledge pledge = new Pledge();
+		model.addAttribute("pledge", pledge);
+		model.addAttribute("projects", projectService.listAllProjects());
+
+		return "newpledge";
+	}
+
+	@PostMapping("newpledge")
+	public String addNewPledgeSave(Pledge pledge, BindingResult binding, RedirectAttributes redirectAttributes) {
+
+		if (binding.hasErrors())
+			return "newpledge";
+
+		if (pledgeService.addPledge(pledge) == null) {
+			redirectAttributes.addFlashAttribute("duplicate", true);
+			return "redirect:" + pledge.getProject().getProjectId();
+		}
+
+		return "redirect:" + pledge.getProject().getProjectId();
+	}
+
+	@GetMapping("logout")
+	String logout(Model model, SessionStatus status) {
+		status.setComplete();
+		model.addAttribute("loggedInuser", "");
+		model.addAttribute("role", "");
+		model.addAttribute("msg", "You have been logged out");
+
+		return "login";
+
+	}
+
+	@PostMapping("savecontact")
+	String savecontact(@ModelAttribute ContactInfo info, RedirectAttributes redirect) {
+
+		contactInfoRepository.save(info);
+		redirect.addFlashAttribute("msg", "Contact saved");
+
+		return "redirect:profile";
+
+	}
+
+	@GetMapping("admin")
+	String admin(Model model) {
+		model.addAttribute("users", userService.findAll());
+		model.addAttribute("msg", " Users Found");
+
+		return "admin";
+
+	}
+
+	@GetMapping("deleteuser")
+	String deleteuser(@RequestParam Long id, RedirectAttributes redirect) {
+
+		userService.deleteUser(id);
+		redirect.addFlashAttribute("success", "Delete Success");
+
+		return "redirect:/admin";
+
+	}
+
+	@GetMapping("delete-{id}")
+	String del(@PathVariable Long id, RedirectAttributes redirect) {
+
+		userService.deleteUser(id);
+		redirect.addFlashAttribute("success", "Delete Success");
+
+		return "redirect:/admin";
+
+	}
+
+	@PostMapping("editrole")
+	String editrole(@RequestParam String role, @RequestParam Long id, RedirectAttributes redirect) {
+
+		userService.addRole(id, role);
+		redirect.addFlashAttribute("success", "Role asigned Successfully");
+
+		return "redirect:admin";
+
+	}
+
+	@PostMapping("search")
+	String search(@RequestParam String keyword, Model model) {
+
+		model.addAttribute("users", userService.searchUser(keyword));
+		model.addAttribute("msg", " user(s) Found ");
+
+		return "admin";
+
+	}
+
+	@PostMapping("/addimages")
+	public String addprofileImg(@RequestParam MultipartFile file, @RequestParam Long id, RedirectAttributes model) {
+
+		Pattern ext = Pattern.compile("([^\\s]+(\\.(?i)(png|jpg|pdf|gif|jpeg))$)");
+		try {
+
+			if (file != null && file.isEmpty()) {
+				model.addFlashAttribute("error", "Error No file Selected ");
+
+				return "redirect:profile";
+
+			}
+			if (file.getSize() > 1073741824) {
+				model.addFlashAttribute("error",
+						"File size " + file.getSize() + "KB excceds max allowed, try another photo ");
+
+				return "redirect:profile";
+
+			}
+			Matcher mtch = ext.matcher(file.getOriginalFilename());
+
+			if (!mtch.matches()) {
+				model.addFlashAttribute("error", "Invalid Image type ");
+
+				return "redirect:profile";
+
+			}
+			// save image
+			webUtils.addProfilePhoto(file, id, "users");
+			model.addFlashAttribute("success", "Upload success ");
+
+		} catch (Exception e) {
+			// e.printStackTrace);
+		}
+		return "redirect:profile";
+	}
+
+	@PostMapping("sendemail")
+	String sendemail(Model model, @RequestParam String email, @RequestParam String name, @RequestParam String message,
+			@RequestParam String subject) {
+		try {
+			webUtils.sendMail(email, message + " From " + name, subject);
+			model.addAttribute("msg", "Thank you " + name + ". Email sent :) ");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return "contact";
+	}
+
+	@GetMapping("expired")
+	String expiredsession(SessionStatus status, Model model) {
+
+		status.setComplete();
+		model.addAttribute("loggedInuser", "");
+		model.addAttribute("role", "");
+		model.addAttribute("expired", "You have been logged out due to inactivity");
+
+		return "login";
+
+	}
+
+	@PostMapping("updatecontact")
+	String updatecontact(@ModelAttribute ContactInfo contact_info, RedirectAttributes redirect) {
+
+		try {
+			Users user = userService.findById(contact_info.getId()).get();
+			contact_info.setUser(user);
+			contactInfoRepository.save(contact_info);
+			redirect.addFlashAttribute("success", "Address Updated");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return "redirect:profile";
+
+	}
+
+	@PostMapping("addcard")
+	String addcarding(@RequestParam("cardno") String cardno, @RequestParam String secode, @RequestParam String expiry,
+			@RequestParam Long id, RedirectAttributes red) {
+
+		Users user = userService.findById(id).get();
+		PaymentMethod pay = new PaymentMethod();
+		pay.setCardno(cardno);
+		pay.setExpiry(expiry);
+		pay.setSecode(secode);
+		pay.setUser(user);
+		paymentMethodRepository.save(pay);
+
+		return "redirect:profile";
+
+	}
+
+	@GetMapping("deletecard-{id}")
+	String removecard(@PathVariable Long id, RedirectAttributes red) {
+
+		paymentMethodRepository.deleteById(id);
+		red.addFlashAttribute("success", "Card Deleted");
+
+		return "redirect:/profile";
+
+	}
+
+	@ModelAttribute("states")
+	public List<States> populateStates() {
+		return Arrays.asList(States.values());
+	}
+
+	@ModelAttribute("contact_info")
+	ContactInfo info() {
+		return new ContactInfo();
+	}
+}

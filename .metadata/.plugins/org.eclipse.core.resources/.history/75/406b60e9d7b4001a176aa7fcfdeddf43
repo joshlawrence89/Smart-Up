@@ -1,0 +1,123 @@
+package com.capt.inv.controller;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.capt.inv.model.Pledge;
+import com.capt.inv.model.Project;
+import com.capt.inv.model.Users;
+import com.capt.inv.repository.ProjectRepository;
+import com.capt.inv.service.PledgeService;
+import com.capt.inv.service.ProjectService;
+import com.capt.inv.service.UserService;
+import com.capt.inv.utils.DataValidation;
+import com.capt.inv.utils.WebUtils;
+
+@Controller
+public class ProjectController {
+	
+	@Autowired
+	ProjectService projectService;
+	@Autowired
+	ProjectRepository projectReposiory;
+	@Autowired
+	UserService userService;
+	@Autowired
+	PledgeService pledgeService;
+	
+	
+	@GetMapping("/viewcampaign/{id}")
+	public String viewProject(@PathVariable("id") int id, Model model) {
+		Project project = projectService.findProject(id);
+		model.addAttribute("project", project);
+		
+		List<Pledge> pledges = pledgeService.findAllPledgesForProject(id);
+		model.addAttribute("pledges", pledges);
+		
+		return "viewcampaign";
+	}
+	
+	@GetMapping("/activecampaigns")
+	public String viewProjects(Model model) {
+		List<Project> projects = projectService.listAllProjects();
+		model.addAttribute("project", projects);
+		return "activecampaigns";
+	}
+	
+	@GetMapping("/newcampaign")
+	public String addNewProjectForm(Model model)
+	{
+		Project project = new Project();		
+		model.addAttribute("project", project);
+		
+		return "newcampaign";
+	}
+	
+	@GetMapping("/mycampaigns")
+	public String myCampaign(Model model)
+	{
+		Project project = new Project();
+		model.addAttribute("project" ,project);
+		
+		return "mycampaigns";
+	}
+	
+	@PostMapping("/mycampaigns")
+	public String mSyCampaigns(@ModelAttribute Project project, Users user)
+	{
+		List<Project> projects = projectService.listAllProjects(user);
+		
+		return "mycampaigns";
+	}
+	
+	@PostMapping("/newcampaign")
+	public String addNewProjectSave(Project project, BindingResult binding, RedirectAttributes redirectAttributes)
+	{
+		project.setDateCreation(LocalDate.now());
+		project.setUser(userService.findById(1));	//Make actual current user*************
+		
+		if (binding.hasErrors())
+			return "newcampaign";
+		
+		if (projectService.addProject(project))
+			return "redirect:mycampaigns";
+		
+		redirectAttributes.addFlashAttribute("duplicate", true);
+		return "redirect:newcampaign";	
+	}
+
+	@GetMapping("/editcampaign/{id}")
+	public String editProjectForm(@PathVariable("id") int id, Model model)
+	{
+		Project project = new Project();
+		model.addAttribute("project", project);
+		model.addAttribute("id", id);
+		
+		return "editcampaign";
+	}
+	
+	@PostMapping("/editcampaign/{id}")
+	public String editProjectSave(Project project, @PathVariable("id") int id, BindingResult binding, RedirectAttributes redirectAttributes)
+	{
+		if (binding.hasErrors())
+			return "/editcampaign/" + id;
+		
+		if (projectService.editDescription(id, project.getDescription()))
+			return "redirect:viewcampaign/"+id;
+		
+		redirectAttributes.addFlashAttribute("duplicate", true);
+		return "redirect:" + id;	
+	}
+
+}

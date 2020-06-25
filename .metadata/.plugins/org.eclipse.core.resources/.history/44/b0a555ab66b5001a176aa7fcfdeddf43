@@ -1,0 +1,143 @@
+package com.capt.inv.model;
+
+
+import java.sql.Date;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import javax.persistence.*;
+import org.apache.tomcat.jni.User;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import javax.persistence.Id;
+
+
+@Entity
+@Table(name="projects")
+public class Project {
+	
+	public Project() {}
+	
+	@Id
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	private int projectId;
+	
+	@Column
+	private String projectName;
+	
+	@Column
+	private String description;
+	
+	@Column
+	private int targetAmount;
+	
+	private Date dateCreation;
+	
+	@Column
+	private String status;
+
+	@OneToMany(mappedBy = "project", fetch=FetchType.EAGER, cascade= CascadeType.ALL)
+	private List<Pledge> pledges = new ArrayList<Pledge>();
+	
+	@ManyToOne
+	
+	@OnDelete(action = OnDeleteAction.CASCADE)
+	private Users user;
+	
+	public Project(String projectName, String description, int targetAmount, LocalDate dateCreation,
+			Users user) {
+		super();
+		this.projectName = projectName;
+		this.description = description;
+		this.targetAmount = targetAmount;
+		this.dateCreation = dateCreation;
+		this.status = "Open";
+		this.user = user;
+	}
+
+	public int getProjectId() {
+		return projectId;
+	}
+
+	public void setProjectId(int projectId) {
+		this.projectId = projectId;
+	}
+
+	public String getProjectName() {
+		return projectName;
+	}
+
+	public void setProjectName(String projectName) {
+		this.projectName = projectName;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public int getTargetAmount() {
+		return targetAmount;
+	}
+
+	public void setTargetAmount(int targetAmount) {
+		this.targetAmount = targetAmount;
+	}
+
+	public Date getDateCreation() {
+		return dateCreation;
+	}
+
+	public void setDateCreation(Date dateCreation) {
+		this.dateCreation = dateCreation;
+	}
+
+	public List<Pledge> getPledges() {
+		return pledges;
+	}
+	
+	public void setPledges(List<Pledge> pledges) {
+		this.pledges = pledges;
+	}
+
+	public void addPledge(Pledge pledge) {
+		pledges.add(pledge);
+	}
+
+	public Users getUser() {
+		return user;
+	}
+
+	public void setUser(Users user) {
+		this.user = user;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	
+	public void isTargetAchieved(int pledgeAmount) {
+		int total = 0;
+		for(Pledge pledge : pledges) {
+			total += pledge.getPledgeAmount();
+		}
+		if((total + pledgeAmount) >= targetAmount) {
+			status = "Closed";
+		}
+	}
+
+	public void setUser(Optional<Users> findById) {
+		
+	}
+	
+}

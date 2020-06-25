@@ -1,0 +1,152 @@
+package com.capt.inv.model;
+
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.*;
+import org.apache.tomcat.jni.User;
+import javax.persistence.Id;
+
+
+@Entity
+@Table(name="projects")
+public class Project {
+	
+	
+	@Id
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	private int id;
+	
+	private String name;
+	
+	private String description;
+	
+	private String image;
+	
+	private float goalAmt;
+	
+	private int timeLimit;
+	private boolean active;
+
+	// list of pledges made to this project
+	@ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST})
+	@JoinTable(name="project_pledges", 
+	joinColumns={@JoinColumn(name="project_id", referencedColumnName="id")},
+	inverseJoinColumns={@JoinColumn(name="pledge_id", referencedColumnName="id")})
+	private List<Pledge> pledges;
+	
+	@ManyToMany(mappedBy="projects", cascade = {CascadeType.PERSIST})
+	private List<User> users;
+	
+	public Project () {
+		users = new ArrayList<User>();
+		pledges = new ArrayList<Pledge>();
+	}
+	
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public List<User> getUsers() {
+		return users;
+	}
+
+	public void setUsers(List<User> users) {
+		this.users = users;
+	}
+
+	public String getName() {
+		return name;
+	}
+	
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+	public String getDescription() {
+		return description;
+	}
+	
+	public void setDescription(String description) {
+		this.description = description;
+	}
+	
+	public String getImage() {
+		return image;
+	}
+	
+	public void setImage(String image) {
+		this.image = image;
+	}
+	
+	public float getGoalAmt() {
+		return goalAmt;
+	}
+	
+	public void setGoalAmt(float goalAmt) {
+		this.goalAmt = goalAmt;
+	}
+	
+	public int getTimeLimit() {
+		return timeLimit;
+	}
+	
+	public void setTimeLimit(int timeLimit) {
+		this.timeLimit = timeLimit;
+	}
+	
+	public List<Pledge> getPledges() {
+		return pledges;
+	}
+
+	public void setPledges(List<Pledge> pledges) {
+		this.pledges = pledges;
+	}
+
+	public User getUser() {
+		return users.get(0);
+	}
+
+	public void setUser(User user) {
+		users.add(user);
+	}
+	
+	public float getTotal() {
+		float total = 0;
+		for (Pledge p: pledges) {
+			total += p.getPledgeAmount();
+		}
+		return total;
+	}
+
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+	
+	public boolean pledgesEmpty() {
+		if(pledges.isEmpty()){
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	@Override
+	public String toString() {
+		String out = "project [id=" + id + ", name=" + name + ", description=" + description
+				+ ", goal amount=" + goalAmt + "]";
+		return out;
+	}
+
+}
+
